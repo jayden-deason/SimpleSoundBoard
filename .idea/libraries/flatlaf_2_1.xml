@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="flatlaf-2.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/SimpleSoundBoard/flatlaf-2.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/SimpleSoundBoard/jaco-mp3-player-0.9.3.jar!/" />
+      <root url="jar://$PROJECT_DIR$/SimpleSoundBoard/jave-1.0.2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/SimpleSoundBoard/JTattoo-1.6.13.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
