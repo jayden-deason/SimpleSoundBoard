@@ -1,8 +1,11 @@
 
-import java.awt.Desktop;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import javax.sound.sampled.AudioFileFormat;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
@@ -12,357 +15,310 @@ import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
+import javax.sound.sampled.AudioFileFormat.Type;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.GroupLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
-import javax.swing.WindowConstants;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.GroupLayout.Alignment;
+import javax.swing.LayoutStyle.ComponentPlacement;
 
-class AudInputLine
-{
-    public Mixer mixer;
-    public Line.Info lineInfo;
-    public String name;
-    
-    public String toString()
-    {
-        return name;
-    }
-}
-public class AudioRecorder extends javax.swing.JFrame {
-
-    private javax.swing.JButton btn_refresh;
-    private javax.swing.JButton btn_start;
-    private javax.swing.JButton btn_stop;
-    private javax.swing.JComboBox cmb_bits;
-    private javax.swing.JComboBox cmb_file_format;
-    private javax.swing.JComboBox cmb_monoORStereo;
-    private javax.swing.JComboBox cmb_sample;
-    private javax.swing.JComboBox cmb_targetdatalines;
-    private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabel6;
-    private javax.swing.JLabel jLabel7;
-    private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JTextArea jTextArea1;
-
-    ArrayList<AudInputLine> lines=new ArrayList<>();
+public class AudioRecorder extends JFrame {
+    private JButton btn_refresh;
+    private JButton btn_start;
+    private JButton btn_stop;
+    private JComboBox cmb_bits;
+    private JComboBox cmb_file_format;
+    private JComboBox cmb_monoORStereo;
+    private JComboBox cmb_sample;
+    private JComboBox cmb_targetdatalines;
+    private JLabel jLabel1;
+    private JLabel jLabel2;
+    private JLabel jLabel3;
+    private JLabel jLabel6;
+    private JLabel jLabel7;
+    private JScrollPane jScrollPane1;
+    private JTextArea jTextArea1;
+    ArrayList<AudInputLine> lines = new ArrayList();
     TargetDataLine inputline;
     File audoutput;
-    boolean start=false;
+    boolean start = false;
     AudioFormat format;
     Mixer.Info[] mixerInfo;
     AudioInputStream ais;
     String filename;
     AudioFileFormat.Type fileformat;
-    String[] exts={"wav","au","aiff","aifc","snd"};
+    String[] exts = new String[]{"wav", "au", "aiff", "aifc", "snd"};
     File directory;
     String name;
-    
-    public AudioRecorder(String userName) {
-        name = userName;
-        initComponents();
-        filename="." + File.separator + "res" + File.separator + name + "res";
-        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-        setAlwaysOnTop(true);
-        RefreshInputs();
-        File fold=new File(filename);
-        if(!fold.exists())
+    String input;
+    Thread startRec = new Thread() {
+        public void run() {
+            while(true) {
+                if (AudioRecorder.this.start) {
+                    AudioRecorder.this.record();
+                } else {
+                    try {
+                        Thread.sleep(300L);
+                    } catch (Exception var2) {
+                    }
+                }
+            }
+        }
+    };
+
+    public AudioRecorder(String userName, String jinput) {
+        this.name = userName;
+        this.initComponents();
+        this.filename = "." + File.separator + "res" + File.separator + this.name + "res";
+        this.setDefaultCloseOperation(2);
+        this.setAlwaysOnTop(true);
+        this.RefreshInputs();
+        File fold = new File(this.filename);
+        if (!fold.exists()) {
             fold.mkdir();
-        directory=new File(fold.getPath());
-        filename+=File.separator+"rec";
-        startRec.start();
-    }
-    
-//__________ Refresh Input sources list_____________
-public void RefreshInputs()
-{
-lines.clear();
-mixerInfo = AudioSystem.getMixerInfo();
-Line.Info[] targlines;
-//getting all TargetLines from all available mixers
-for(Mixer.Info m:mixerInfo)
-    {
-    targlines=AudioSystem.getMixer(m).getTargetLineInfo();
-    for(Line.Info ln:targlines)
-        {
-        AudInputLine tail=new AudInputLine();
-        tail.lineInfo=ln;
-        tail.mixer=AudioSystem.getMixer(m);
-        tail.name=tail.mixer.getMixerInfo().toString();
-        lines.add(tail);
         }
+
+        this.directory = new File(fold.getPath());
+        this.filename = this.filename + File.separator + "rec";
+        this.startRec.start();
+        this.input = jinput;
     }
 
-//removing TargetLines that do not support any AudioFormat
-for(int i=0;i<lines.size();i++)
-    {
-    try{
-        if(((DataLine.Info)lines.get(i).lineInfo).getFormats().length<1)
-            {
-            lines.remove(i);
-            i-=1;
+    public String getName() {
+        return this.input;
+    }
+
+    public void RefreshInputs() {
+        this.lines.clear();
+        this.mixerInfo = AudioSystem.getMixerInfo();
+        Mixer.Info[] var5;
+        int var4 = (var5 = this.mixerInfo).length;
+
+        for(int var3 = 0; var3 < var4; ++var3) {
+            Mixer.Info m = var5[var3];
+            Line.Info[] targlines = AudioSystem.getMixer(m).getTargetLineInfo();
+            Line.Info[] var9 = targlines;
+            int var8 = targlines.length;
+
+            for(int var7 = 0; var7 < var8; ++var7) {
+                Line.Info ln = var9[var7];
+                AudInputLine tail = new AudInputLine();
+                tail.lineInfo = ln;
+                tail.mixer = AudioSystem.getMixer(m);
+                tail.name = tail.mixer.getMixerInfo().toString();
+                this.lines.add(tail);
             }
-       }catch(Exception exx)
-        {
-            lines.remove(i);
-            i-=1;
         }
-    }
 
-cmb_targetdatalines.removeAllItems();
-for(AudInputLine dinf:lines)
-    cmb_targetdatalines.addItem(dinf);
-}
-
-//__________ Refresh audioformats_____________
-public void RefreshAudioFormats()
-{
-int[] bits={24,16,8};
-float[] sampling={8000,11025,16000,22050,44100,48000,96000,192000};
-AudInputLine taud=((AudInputLine)cmb_targetdatalines.getSelectedItem());
-
-//____populating samplerates combobox___
-cmb_sample.removeAllItems();
-for(int i=0;i<sampling.length;i++)
-    {
-    AudioFormat aftemp=new AudioFormat(sampling[i],8,1,false,true);
-    if(taud.lineInfo instanceof DataLine.Info&&((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)==true)
-        {
-        cmb_sample.addItem(Float.toString(sampling[i]));
-        if(sampling[i]==44100||sampling[i]==48000)
-            cmb_sample.setSelectedIndex(i);
+        for(int i = 0; i < this.lines.size(); ++i) {
+            try {
+                if (((DataLine.Info)((AudInputLine)this.lines.get(i)).lineInfo).getFormats().length < 1) {
+                    this.lines.remove(i);
+                    --i;
+                }
+            } catch (Exception var11) {
+                this.lines.remove(i);
+                --i;
+            }
         }
+
+        this.cmb_targetdatalines.removeAllItems();
+        Iterator var13 = this.lines.iterator();
+
+        while(var13.hasNext()) {
+            AudInputLine dinf = (AudInputLine)var13.next();
+            this.cmb_targetdatalines.addItem(dinf);
+        }
+
     }
 
-//___populating sampleBItSize combobox___
-cmb_bits.removeAllItems();
-for(int i=0;i<bits.length;i++)
-    {
-    AudioFormat aftemp=new AudioFormat(8000,bits[i],1,!(bits[i]==8),true);
-    if(taud.lineInfo instanceof DataLine.Info&&((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)==true)
-        cmb_bits.addItem(Integer.toString(bits[i]));
+    public void RefreshAudioFormats() {
+        int[] bits = new int[]{24, 16, 8};
+        float[] sampling = new float[]{8000.0F, 11025.0F, 16000.0F, 22050.0F, 44100.0F, 48000.0F, 96000.0F, 192000.0F};
+        AudInputLine taud = (AudInputLine)this.cmb_targetdatalines.getSelectedItem();
+        this.cmb_sample.removeAllItems();
+
+        int i;
+        AudioFormat aftemp;
+        for(i = 0; i < sampling.length; ++i) {
+            aftemp = new AudioFormat(sampling[i], 8, 1, false, true);
+            if (taud.lineInfo instanceof DataLine.Info && ((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)) {
+                this.cmb_sample.addItem(Float.toString(sampling[i]));
+                if (sampling[i] == 44100.0F || sampling[i] == 48000.0F) {
+                    this.cmb_sample.setSelectedIndex(i);
+                }
+            }
+        }
+
+        this.cmb_bits.removeAllItems();
+
+        for(i = 0; i < bits.length; ++i) {
+            aftemp = new AudioFormat(8000.0F, bits[i], 1, bits[i] != 8, true);
+            if (taud.lineInfo instanceof DataLine.Info && ((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)) {
+                this.cmb_bits.addItem(Integer.toString(bits[i]));
+            }
+        }
+
+        /* AudioFormat */ aftemp = new AudioFormat(8000.0F, 8, 2, false, true);
+        this.cmb_monoORStereo.removeAllItems();
+        if (taud.lineInfo instanceof DataLine.Info && ((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)) {
+            this.cmb_monoORStereo.addItem("Stereo");
+        }
+
+        this.cmb_monoORStereo.addItem("Mono");
     }
 
-//___Populating Channels combobox (mono/stereo)_____
-AudioFormat aftemp=new AudioFormat(8000,8,2,false,true);
-cmb_monoORStereo.removeAllItems();
-if(taud.lineInfo instanceof DataLine.Info&&((DataLine.Info)taud.lineInfo).isFormatSupported(aftemp)==true)
-    cmb_monoORStereo.addItem("Stereo");
-cmb_monoORStereo.addItem("Mono");
-}
-
-//______________Record________________
-public void record(){
-try{
-start=false;
-inputline.open(format);
-inputline.start();
-ais=new AudioInputStream(inputline);
-AudioSystem.write(ais,fileformat, audoutput);
-}catch(Exception ex)
-    {   
-    JOptionPane.showMessageDialog(this, ex.getMessage());
-    buttonsEnable(true);
-    }
-
-}
-
-//method to handle enabling and disabling UI element when start/stop button are pressed
-public void buttonsEnable(boolean f)
-{
-cmb_targetdatalines.setEnabled(f);
-cmb_bits.setEnabled(f);
-cmb_file_format.setEnabled(f);
-cmb_monoORStereo.setEnabled(f);
-cmb_sample.setEnabled(f);
-btn_stop.setEnabled(!f);
-btn_start.setEnabled(f);
-}
-
-//The recording thread. Set apart from EDT
-Thread startRec=new Thread()
-{
-  public void run()
-  {
-  while(true)
-    {
-    while(start==false)
+    public void record() {
         try {
-            Thread.sleep(300);
-        } catch (Exception ex) {}
-    record();
-    }
- }
-};
-
-//___GUI initialisation (netbeans generated)_____
-private void initComponents() {
-
-        btn_stop = new javax.swing.JButton();
-        btn_start = new javax.swing.JButton();
-        cmb_targetdatalines = new javax.swing.JComboBox();
-        jScrollPane1 = new javax.swing.JScrollPane();
-        jTextArea1 = new javax.swing.JTextArea();
-        jLabel6 = new javax.swing.JLabel();
-        cmb_file_format = new javax.swing.JComboBox();
-        jLabel7 = new javax.swing.JLabel();
-        btn_refresh = new javax.swing.JButton();
-        jLabel2 = new javax.swing.JLabel();
-        jLabel1 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        cmb_sample = new javax.swing.JComboBox();
-        cmb_bits = new javax.swing.JComboBox();
-        cmb_monoORStereo = new javax.swing.JComboBox();
-
-        setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        
-
-        btn_stop.setText("Stop");
-        btn_stop.setEnabled(false);
-        btn_stop.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_stopActionPerformed(evt);
-            }
-        });
-
-        btn_start.setText("Start");
-        btn_start.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_startActionPerformed(evt);
-            }
-        });
-
-        cmb_targetdatalines.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                cmb_targetdatalinesActionPerformed(evt);
-            }
-        });
-
-        jTextArea1.setEditable(false);
-        jTextArea1.setColumns(20);
-        jTextArea1.setFont(new java.awt.Font("Monospaced", 0, 11)); // NOI18N
-        jTextArea1.setLineWrap(true);
-        jTextArea1.setRows(5);
-        jTextArea1.setWrapStyleWord(true);
-        jScrollPane1.setViewportView(jTextArea1);
-
-        jLabel6.setText("Sample Size in bits");
-
-        cmb_file_format.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "WAVE", "AU", "AIFF", "AIFF-C", "SND" }));
-
-        jLabel7.setText("Select Input Source");
-
-        btn_refresh.setText("Refresh Inputs");
-        btn_refresh.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btn_refreshActionPerformed(evt);
-            }
-        });
-
-        jLabel2.setText("Sample Rate");
-
-        jLabel1.setText("Mono/Stereo");
-
-        jLabel3.setText("File Format");
-
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(cmb_targetdatalines, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(jLabel7)
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                    .addGroup(layout.createSequentialGroup()
-                                     .addComponent(btn_start, javax.swing.GroupLayout.PREFERRED_SIZE, 85, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addGap(10, 10, 10)
-                                       .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addComponent(btn_stop, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                         .addGap(0, 0, Short.MAX_VALUE)))
-                .addContainerGap())
-        ))))))))));
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabel7)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(cmb_targetdatalines, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-               .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addGap(18, 18, 18)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btn_stop, javax.swing.GroupLayout.DEFAULT_SIZE, 39, Short.MAX_VALUE)
-                    .addComponent(btn_start, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(6, 6, 6))
-        ))));
-
-        pack();
-    }
-
-private void btn_stopActionPerformed(java.awt.event.ActionEvent evt) {
-inputline.stop();  
-inputline.close();
-try {
-    Desktop.getDesktop().open(directory);
-    } catch (Exception ex) {}
-buttonsEnable(true);
-    }
-
-private void btn_startActionPerformed(java.awt.event.ActionEvent evt) {
-Date no=new Date();
-audoutput=new File(filename+no.toString().replaceAll(":","-")+"."+exts[cmb_file_format.getSelectedIndex()]);
-switch(cmb_file_format.getSelectedIndex())
-    {
-    case 0:fileformat=AudioFileFormat.Type.WAVE;break;
-    case 1:fileformat=AudioFileFormat.Type.AU;break;
-    case 2:fileformat=AudioFileFormat.Type.AIFF;break;
-    case 3:fileformat=AudioFileFormat.Type.AIFC;break;
-    case 4:fileformat=AudioFileFormat.Type.SND;break;
-    }
-AudInputLine tau=(AudInputLine)cmb_targetdatalines.getSelectedItem();
-format=new AudioFormat(Float.parseFloat((String)cmb_sample.getSelectedItem()),Integer.parseInt((String)cmb_bits.getSelectedItem()),(cmb_monoORStereo.getSelectedIndex()+1)%2+1,!(Integer.parseInt((String)cmb_bits.getSelectedItem())==8),true);
-AudInputLine taud=((AudInputLine)cmb_targetdatalines.getSelectedItem());
-if(taud.lineInfo instanceof DataLine.Info&&((DataLine.Info)taud.lineInfo).isFormatSupported(format)==false)
-    format=new AudioFormat(Float.parseFloat((String)cmb_sample.getSelectedItem()),Integer.parseInt((String)cmb_bits.getSelectedItem()),(cmb_monoORStereo.getSelectedIndex()+1)%2+1,!(Integer.parseInt((String)cmb_bits.getSelectedItem())==8),false);
-try {
-    inputline=AudioSystem.getTargetDataLine(format,tau.mixer.getMixerInfo());
-    } catch (LineUnavailableException ex) {
-        JOptionPane.showMessageDialog(this,ex.getMessage());
+            this.start = false;
+            this.inputline.open(this.format);
+            this.inputline.start();
+            this.ais = new AudioInputStream(this.inputline);
+            AudioSystem.write(this.ais, this.fileformat, this.audoutput);
+        } catch (Exception var2) {
+            JOptionPane.showMessageDialog(this, var2.getMessage());
+            this.buttonsEnable(true);
         }
-buttonsEnable(false);
-start=true;
-}
 
-private void cmb_targetdatalinesActionPerformed(java.awt.event.ActionEvent evt) {
-if(cmb_targetdatalines.getItemCount()>0)
-{
-AudInputLine tau=(AudInputLine)cmb_targetdatalines.getSelectedItem();
-jTextArea1.setText(tau.mixer.getMixerInfo().toString()+".\n"+tau.lineInfo.toString());
-RefreshAudioFormats();
-}
     }
 
-private void btn_refreshActionPerformed(java.awt.event.ActionEvent evt) {
-cmb_targetdatalines.removeAllItems();
-RefreshInputs();
+    public void buttonsEnable(boolean f) {
+        this.cmb_targetdatalines.setEnabled(f);
+        this.cmb_bits.setEnabled(f);
+        this.cmb_file_format.setEnabled(f);
+        this.cmb_monoORStereo.setEnabled(f);
+        this.cmb_sample.setEnabled(f);
+        this.btn_stop.setEnabled(!f);
+        this.btn_start.setEnabled(f);
     }
 
+    private void initComponents() {
+        this.btn_stop = new JButton();
+        this.btn_start = new JButton();
+        this.cmb_targetdatalines = new JComboBox();
+        this.jScrollPane1 = new JScrollPane();
+        this.jTextArea1 = new JTextArea();
+        this.jLabel6 = new JLabel();
+        this.cmb_file_format = new JComboBox();
+        this.jLabel7 = new JLabel();
+        this.btn_refresh = new JButton();
+        this.jLabel2 = new JLabel();
+        this.jLabel1 = new JLabel();
+        this.jLabel3 = new JLabel();
+        this.cmb_sample = new JComboBox();
+        this.cmb_bits = new JComboBox();
+        this.cmb_monoORStereo = new JComboBox();
+        this.setDefaultCloseOperation(2);
+        this.btn_stop.setText("Stop");
+        this.btn_stop.setEnabled(false);
+        this.btn_stop.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                AudioRecorder.this.btn_stopActionPerformed(evt);
+            }
+        });
+        this.btn_start.setText("Start");
+        this.btn_start.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                AudioRecorder.this.btn_startActionPerformed(evt);
+            }
+        });
+        this.cmb_targetdatalines.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                AudioRecorder.this.cmb_targetdatalinesActionPerformed(evt);
+            }
+        });
+        this.jTextArea1.setEditable(false);
+        this.jTextArea1.setColumns(20);
+        this.jTextArea1.setFont(new Font("Monospaced", 0, 11));
+        this.jTextArea1.setLineWrap(true);
+        this.jTextArea1.setRows(5);
+        this.jTextArea1.setWrapStyleWord(true);
+        this.jScrollPane1.setViewportView(this.jTextArea1);
+        this.jLabel6.setText("Sample Size in bits");
+        this.cmb_file_format.setModel(new DefaultComboBoxModel(new String[]{"WAVE", "AU", "AIFF", "AIFF-C", "SND"}));
+        this.jLabel7.setText("Select Input Source");
+        this.btn_refresh.setText("Refresh Inputs");
+        this.btn_refresh.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent evt) {
+                AudioRecorder.this.btn_refreshActionPerformed(evt);
+            }
+        });
+        this.jLabel2.setText("Sample Rate");
+        this.jLabel1.setText("Mono/Stereo");
+        this.jLabel3.setText("File Format");
+        GroupLayout layout = new GroupLayout(this.getContentPane());
+        this.getContentPane().setLayout(layout);
+        layout.setHorizontalGroup(layout.createParallelGroup(Alignment.LEADING).addGroup(layout.createSequentialGroup().addContainerGap().addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(this.cmb_targetdatalines, 0, -1, 32767).addGroup(layout.createSequentialGroup().addGroup(layout.createParallelGroup(Alignment.LEADING).addGroup(layout.createSequentialGroup().addPreferredGap(ComponentPlacement.RELATED).addComponent(this.jLabel7).addGroup(layout.createSequentialGroup().addGroup(layout.createParallelGroup(Alignment.TRAILING, false).addGroup(layout.createSequentialGroup().addPreferredGap(ComponentPlacement.RELATED).addGroup(layout.createSequentialGroup().addComponent(this.btn_start, -2, 85, -2)).addGroup(layout.createParallelGroup(Alignment.TRAILING, false).addGroup(layout.createSequentialGroup().addGap(10, 10, 10).addPreferredGap(ComponentPlacement.RELATED).addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(this.btn_stop, -2, 80, -2).addGroup(layout.createParallelGroup(Alignment.LEADING, false).addGap(0, 0, 32767))).addContainerGap())))))))))));
+        layout.setVerticalGroup(layout.createParallelGroup(Alignment.LEADING).addGroup(layout.createSequentialGroup().addContainerGap().addComponent(this.jLabel7).addPreferredGap(ComponentPlacement.RELATED).addComponent(this.cmb_targetdatalines, -2, -1, -2).addPreferredGap(ComponentPlacement.RELATED).addGroup(layout.createParallelGroup(Alignment.LEADING, false).addGroup(layout.createParallelGroup(Alignment.BASELINE).addGroup(layout.createParallelGroup(Alignment.BASELINE).addGap(18, 18, 18).addGroup(layout.createParallelGroup(Alignment.LEADING).addComponent(this.btn_stop, -1, 39, 32767).addComponent(this.btn_start, -1, -1, 32767)).addGap(6, 6, 6))))));
+        this.pack();
+    }
 
+    private void btn_stopActionPerformed(ActionEvent evt) {
+        this.inputline.stop();
+        this.inputline.close();
 
+        try {
+            this.dispose();
+        } catch (Exception var3) {
+        }
 
+        this.buttonsEnable(true);
+    }
+
+    private void btn_startActionPerformed(ActionEvent evt) {
+        new Date();
+        this.audoutput = new File(this.filename + this.input + "." + this.exts[this.cmb_file_format.getSelectedIndex()]);
+        switch (this.cmb_file_format.getSelectedIndex()) {
+            case 0:
+                this.fileformat = AudioFileFormat.Type.WAVE;
+                break;
+            case 1:
+                this.fileformat = AudioFileFormat.Type.AU;
+                break;
+            case 2:
+                this.fileformat = AudioFileFormat.Type.AIFF;
+                break;
+            case 3:
+                this.fileformat = AudioFileFormat.Type.AIFC;
+                break;
+            case 4:
+                this.fileformat = AudioFileFormat.Type.SND;
+        }
+
+        AudInputLine tau = (AudInputLine)this.cmb_targetdatalines.getSelectedItem();
+        this.format = new AudioFormat(Float.parseFloat((String)this.cmb_sample.getSelectedItem()), Integer.parseInt((String)this.cmb_bits.getSelectedItem()), (this.cmb_monoORStereo.getSelectedIndex() + 1) % 2 + 1, Integer.parseInt((String)this.cmb_bits.getSelectedItem()) != 8, true);
+        AudInputLine taud = (AudInputLine)this.cmb_targetdatalines.getSelectedItem();
+        if (taud.lineInfo instanceof DataLine.Info && !((DataLine.Info)taud.lineInfo).isFormatSupported(this.format)) {
+            this.format = new AudioFormat(Float.parseFloat((String)this.cmb_sample.getSelectedItem()), Integer.parseInt((String)this.cmb_bits.getSelectedItem()), (this.cmb_monoORStereo.getSelectedIndex() + 1) % 2 + 1, Integer.parseInt((String)this.cmb_bits.getSelectedItem()) != 8, false);
+        }
+
+        try {
+            this.inputline = AudioSystem.getTargetDataLine(this.format, tau.mixer.getMixerInfo());
+        } catch (LineUnavailableException var6) {
+            JOptionPane.showMessageDialog(this, var6.getMessage());
+        }
+
+        this.buttonsEnable(false);
+        this.start = true;
+    }
+
+    private void cmb_targetdatalinesActionPerformed(ActionEvent evt) {
+        if (this.cmb_targetdatalines.getItemCount() > 0) {
+            AudInputLine tau = (AudInputLine)this.cmb_targetdatalines.getSelectedItem();
+            this.jTextArea1.setText(tau.mixer.getMixerInfo().toString() + ".\n" + tau.lineInfo.toString());
+            this.RefreshAudioFormats();
+        }
+
+    }
+
+    private void btn_refreshActionPerformed(ActionEvent evt) {
+        this.cmb_targetdatalines.removeAllItems();
+        this.RefreshInputs();
+    }
 }
