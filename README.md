@@ -1,6 +1,6 @@
 SimpleSoundBoard - WIP  
   
-We plan to implement a few minor fixes and add a few QoL/new featuers.  
+We plan to implement a few minor fixes and add a few QoL/new features.  
 Here is a small list of a few things that are coming.  
 Fixes:  
 &emsp; Some files are retained after deleting a profile  
