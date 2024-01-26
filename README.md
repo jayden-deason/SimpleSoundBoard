@@ -15,5 +15,3 @@ These are just a few of the things that we are working on. This may not be a com
 If we find other bugs or think of additional features, we will work on those as well.  
   
 One additional note, SimpleSoundBoard ONLY works with .wav files. This is a limitation of Java itself and something that, to my knowledge, we cannot fix. If you have an audio file that is .mp3 or any other filetype, you will first need to use an external tool to convert it to .wav.  
-  
-P.S. I have not taken the time to refresh myself on Markdown, so if this looks bad just bear with me. This page will be refined when we feel like the project is in a more finished state.  
